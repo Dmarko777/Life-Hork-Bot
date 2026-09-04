@@ -206,4 +206,4 @@ client.on('interactionCreate', async (interaction) => {
 // التوكن
 // ===============================
 
-client.login('حط_التوكن_الجديد_هنا');
+client.login('MTU0NDA0ODY2MjU0NjQ4NTI3OA.GrsaVQ.uaf6DAlccGgdESaTXfS--i1MOeKBKaFq6DqKL0');
