@@ -22,8 +22,8 @@ const client = new Client({
 // الإعدادات
 // ===============================
 
-const SUPPORT_ROLE_ID = 'حط_ايدي_رتبة_الإدارة_هنا';
-const TICKET_CATEGORY_ID = 'حط_ايدي_كاتيجوري_التكت_هنا';
+const SUPPORT_ROLE_ID = '1446972300380471438';
+const TICKET_CATEGORY_ID = '1540086215351476435';
 
 // ===============================
 
