@@ -75,85 +75,96 @@ client.on('interactionCreate', async (interaction) => {
 
     if (interaction.customId === 'open_ticket') {
 
-        const guild = interaction.guild;
+        // 1. تأجيل الاستجابة فوراً ليعلم ديسكورد أن البوت يفكّر ولن يتوقف
+        await interaction.deferReply({ ephemeral: true });
 
-        // التأكد إذا عنده تكت مفتوح
-        const existingTicket = guild.channels.cache.find(
-            channel =>
-                channel.name === `ticket-${interaction.user.username.toLowerCase()}` &&
-                channel.type === ChannelType.GuildText
-        );
+        try {
+            const guild = interaction.guild;
 
-        if (existingTicket) {
-            return interaction.reply({
-                content: `لديك تكت مفتوح بالفعل: ${existingTicket}`,
-                ephemeral: true
+            // التأكد إذا كان لديه تكت مفتوح
+            const existingTicket = guild.channels.cache.find(
+                channel =>
+                    channel.name === `ticket-${interaction.user.username.toLowerCase()}` &&
+                    channel.type === ChannelType.GuildText
+            );
+
+            if (existingTicket) {
+                return await interaction.editReply({
+                    content: `لديك تكت مفتوح بالفعل: ${existingTicket}`
+                });
+            }
+
+            // إنشاء قناة التكت
+            const ticketChannel = await guild.channels.create({
+                name: `ticket-${interaction.user.username}`,
+                type: ChannelType.GuildText,
+                parent: TICKET_CATEGORY_ID,
+
+                permissionOverwrites: [
+                    {
+                        id: guild.roles.everyone.id,
+                        deny: [PermissionFlagsBits.ViewChannel]
+                    },
+                    {
+                        id: interaction.user.id,
+                        allow: [
+                            PermissionFlagsBits.ViewChannel,
+                            PermissionFlagsBits.SendMessages,
+                            PermissionFlagsBits.ReadMessageHistory
+                        ]
+                    },
+                    {
+                        id: SUPPORT_ROLE_ID,
+                        allow: [
+                            PermissionFlagsBits.ViewChannel,
+                            PermissionFlagsBits.SendMessages,
+                            PermissionFlagsBits.ReadMessageHistory
+                        ]
+                    }
+                ]
+            });
+
+            const embed = new EmbedBuilder()
+                .setTitle('🎫 Life Hork | Ticket')
+                .setDescription(
+                    `مرحبًا ${interaction.user}!\n\n` +
+                    'اكتب مشكلتك أو طلبك بالتفصيل وانتظر أحد أفراد الإدارة.\n\n' +
+                    'يمكن للإدارة استلام التكت من الزر بالأسفل.'
+                )
+                .setColor(0x2b2d31);
+
+            const claimButton = new ButtonBuilder()
+                .setCustomId('claim_ticket')
+                .setLabel('استلام التكت')
+                .setEmoji('📌')
+                .setStyle(ButtonStyle.Success);
+
+            const closeButton = new ButtonBuilder()
+                .setCustomId('close_ticket')
+                .setLabel('إغلاق التكت')
+                .setEmoji('🔒')
+                .setStyle(ButtonStyle.Danger);
+
+            const row = new ActionRowBuilder()
+                .addComponents(claimButton, closeButton);
+
+            await ticketChannel.send({
+                content: `${interaction.user} <@&${SUPPORT_ROLE_ID}>`,
+                embeds: [embed],
+                components: [row]
+            });
+
+            // 2. تحديث الرد المؤجل بعد انتهاء العمليات
+            await interaction.editReply({
+                content: `تم فتح تكتك: ${ticketChannel}`
+            });
+
+        } catch (error) {
+            console.error('حدث خطأ أثناء فتح التكت:', error);
+            await interaction.editReply({
+                content: 'حدث خطأ أثناء محاولة إنشاء التكت. تأكد من وجود الـ Category وصلاحيات البوت.'
             });
         }
-
-        const ticketChannel = await guild.channels.create({
-            name: `ticket-${interaction.user.username}`,
-            type: ChannelType.GuildText,
-            parent: TICKET_CATEGORY_ID,
-
-            permissionOverwrites: [
-                {
-                    id: guild.roles.everyone.id,
-                    deny: [PermissionFlagsBits.ViewChannel]
-                },
-                {
-                    id: interaction.user.id,
-                    allow: [
-                        PermissionFlagsBits.ViewChannel,
-                        PermissionFlagsBits.SendMessages,
-                        PermissionFlagsBits.ReadMessageHistory
-                    ]
-                },
-                {
-                    id: SUPPORT_ROLE_ID,
-                    allow: [
-                        PermissionFlagsBits.ViewChannel,
-                        PermissionFlagsBits.SendMessages,
-                        PermissionFlagsBits.ReadMessageHistory
-                    ]
-                }
-            ]
-        });
-
-        const embed = new EmbedBuilder()
-            .setTitle('🎫 Life Hork | Ticket')
-            .setDescription(
-                `مرحبًا ${interaction.user}!\n\n` +
-                'اكتب مشكلتك أو طلبك بالتفصيل وانتظر أحد أفراد الإدارة.\n\n' +
-                'يمكن للإدارة استلام التكت من الزر بالأسفل.'
-            )
-            .setColor(0x2b2d31);
-
-        const claimButton = new ButtonBuilder()
-            .setCustomId('claim_ticket')
-            .setLabel('استلام التكت')
-            .setEmoji('📌')
-            .setStyle(ButtonStyle.Success);
-
-        const closeButton = new ButtonBuilder()
-            .setCustomId('close_ticket')
-            .setLabel('إغلاق التكت')
-            .setEmoji('🔒')
-            .setStyle(ButtonStyle.Danger);
-
-        const row = new ActionRowBuilder()
-            .addComponents(claimButton, closeButton);
-
-        await ticketChannel.send({
-            content: `${interaction.user} <@&${SUPPORT_ROLE_ID}>`,
-            embeds: [embed],
-            components: [row]
-        });
-
-        await interaction.reply({
-            content: `تم فتح تكتك: ${ticketChannel}`,
-            ephemeral: true
-        });
     }
 
     // ===============================
